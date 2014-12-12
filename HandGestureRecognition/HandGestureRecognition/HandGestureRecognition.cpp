@@ -43,9 +43,16 @@ int _tmain(int argc, _TCHAR* argv[]) {
     binaryImage[i] = new bool[width];
   }
 
+  clock_t t = clock();
+
   transformMatToRGBMatrix(image, imageRGB);
   transformRGBToHSV(imageRGB, imageHSV, height, width);
   binarizeHSVImage(imageHSV, binaryImage, height, width);
+
+  t = clock() - t;
+  cout << "Processing time = " << t << " miliseconds" << endl;
+  cout << "Processing time = " << t/(float)CLOCKS_PER_SEC << " seconds" << endl;
+
 
   //put the binarization matrix in result
   for(int i = 0; i < height; i++) {
