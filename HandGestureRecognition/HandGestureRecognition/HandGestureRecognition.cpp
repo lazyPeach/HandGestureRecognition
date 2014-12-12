@@ -1,12 +1,20 @@
 #include "stdafx.h"
+
 #include <opencv2/highgui/highgui.hpp>
 #include <math.h>
 #include <iostream>
 #include <Windows.h>
 #include <time.h>
 
+#include "defines.h"
+#include "transformation.h"
+
 using namespace cv;
 using namespace std;
+
+colorRGB** imageRGB;
+colorHSV** imageHSV;
+bool** binaryImage;
 
 int _tmain(int argc, _TCHAR* argv[]) {
   
@@ -18,11 +26,45 @@ int _tmain(int argc, _TCHAR* argv[]) {
   }
   
   Mat result(image.rows, image.cols, image.type());
-  result.data = image.data;
 
   namedWindow("Initial",CV_WINDOW_AUTOSIZE);
   namedWindow("Result",CV_WINDOW_AUTOSIZE);
   
+  int height = image.rows;
+  int width = image.cols;
+  
+  imageRGB = new colorRGB*[height];
+  imageHSV = new colorHSV*[height];
+  binaryImage = new bool*[height];
+
+  for ( int i = 0; i < height; i++ ) {
+    imageRGB[i] = new colorRGB[width];
+    imageHSV[i] = new colorHSV[width];
+    binaryImage[i] = new bool[width];
+  }
+
+  transformMatToRGBMatrix(image, imageRGB);
+  transformRGBToHSV(imageRGB, imageHSV, height, width);
+  binarizeHSVImage(imageHSV, binaryImage, height, width);
+
+  //put the binarization matrix in result
+  for(int i = 0; i < height; i++) {
+    for(int j = 0; j < width; j++) {
+      Vec3b color;
+
+      
+      if ( binaryImage[i][j] ) {
+        color[0] = 0;//imageRGB[i][j].blue;
+        color[1] = 150;//imageRGB[i][j].green;
+        color[2] = 100;//imageRGB[i][j].red;
+      } else {
+        color[0] = 255;
+        color[1] = 255;
+        color[2] = 255;
+      }
+      result.at<Vec3b>(Point(j,i)) = color;
+    }
+  }
   
   imshow( "Initial", image );
   imshow("Result", result);
