@@ -14,12 +14,28 @@ using namespace cv;
 using namespace std;
 
 colorRGB** imageRGB;
+colorRGB** backgroundRGB;
 colorHSV** imageHSV;
 bool** binaryImage;
 
+void subtractBackground(int height, int width) {
+  if (imageRGB == NULL || backgroundRGB == NULL)
+    return;
+
+  for(int i = 0; i < height; i++) {
+    for(int j = 0; j < width; j++) {
+      imageRGB[i][j].red = imageRGB[i][j].red - backgroundRGB[i][j].red;
+      imageRGB[i][j].green = imageRGB[i][j].green - backgroundRGB[i][j].green;
+      imageRGB[i][j].blue = imageRGB[i][j].blue - backgroundRGB[i][j].blue;
+    }
+  }
+
+}
+
 int _tmain(int argc, _TCHAR* argv[]) {
   
-  Mat image = imread("../samples/background.jpg", CV_LOAD_IMAGE_COLOR);
+  Mat backgroundImage = imread("../samples/background.jpg", CV_LOAD_IMAGE_COLOR);
+  Mat image = imread("../samples/img0.jpg", CV_LOAD_IMAGE_COLOR);
 
   if(! image.data ) { // Check for invalid input
     cout << "Could not open or find the image" << std::endl ;
@@ -35,18 +51,23 @@ int _tmain(int argc, _TCHAR* argv[]) {
   int width = image.cols;
   
   imageRGB = new colorRGB*[height];
+  backgroundRGB = new colorRGB*[height];
   imageHSV = new colorHSV*[height];
   binaryImage = new bool*[height];
 
   for ( int i = 0; i < height; i++ ) {
     imageRGB[i] = new colorRGB[width];
+    backgroundRGB[i] = new colorRGB[width];
     imageHSV[i] = new colorHSV[width];
     binaryImage[i] = new bool[width];
   }
 
+  transformMatToRGBMatrix(backgroundImage, backgroundRGB);//doesn't count as computation since it is done only once
+
   clock_t t = clock();
 
   transformMatToRGBMatrix(image, imageRGB);
+  subtractBackground(height, width);
   transformRGBToHSV(imageRGB, imageHSV, height, width);
   binarizeHSVImage(imageHSV, binaryImage, height, width);
   closeImage(binaryImage, height, width);
