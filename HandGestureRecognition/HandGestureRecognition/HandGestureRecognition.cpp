@@ -8,6 +8,7 @@
 
 #include "defines.h"
 #include "transformation.h"
+#include "imageProcessing.h"
 
 using namespace cv;
 using namespace std;
@@ -48,6 +49,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   transformMatToRGBMatrix(image, imageRGB);
   transformRGBToHSV(imageRGB, imageHSV, height, width);
   binarizeHSVImage(imageHSV, binaryImage, height, width);
+  closeImage(binaryImage, height, width);
+  
 
   t = clock() - t;
   cout << "Processing time = " << t << " miliseconds" << endl;
