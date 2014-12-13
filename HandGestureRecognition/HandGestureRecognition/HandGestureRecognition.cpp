@@ -17,6 +17,20 @@ colorRGB** imageRGB;
 colorRGB** backgroundRGB;
 colorHSV** imageHSV;
 bool** binaryImage;
+int** labeledImage;
+
+void mouseHandler(int event, int y, int x, int flags, void* param) {
+    switch( event ) {
+    case CV_EVENT_LBUTTONDOWN:
+        cout << endl;
+        cout << "mouse at position: " << x << " " << y << endl;
+        cout << "Label: " << labeledImage[x][y] << endl;
+
+        break;
+    default:
+        break;
+    }
+}
 
 void subtractBackground(int height, int width) {
   if (imageRGB == NULL || backgroundRGB == NULL)
@@ -33,9 +47,14 @@ void subtractBackground(int height, int width) {
 }
 
 int _tmain(int argc, _TCHAR* argv[]) {
-  
+  namedWindow("Initial",CV_WINDOW_AUTOSIZE);
+  namedWindow("Result",CV_WINDOW_AUTOSIZE);
+  int mouseParam= CV_EVENT_FLAG_LBUTTON;
+  cvSetMouseCallback("Initial",mouseHandler,&mouseParam);
+  cvSetMouseCallback("Result",mouseHandler,&mouseParam);
+
   Mat backgroundImage = imread("../samples/background.jpg", CV_LOAD_IMAGE_COLOR);
-  Mat image = imread("../samples/img0.jpg", CV_LOAD_IMAGE_COLOR);
+  Mat image = imread("../samples/img2.jpg", CV_LOAD_IMAGE_COLOR);
 
   if(! image.data ) { // Check for invalid input
     cout << "Could not open or find the image" << std::endl ;
@@ -44,8 +63,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
   
   Mat result(image.rows, image.cols, image.type());
 
-  namedWindow("Initial",CV_WINDOW_AUTOSIZE);
-  namedWindow("Result",CV_WINDOW_AUTOSIZE);
+
   
   int height = image.rows;
   int width = image.cols;
@@ -54,12 +72,14 @@ int _tmain(int argc, _TCHAR* argv[]) {
   backgroundRGB = new colorRGB*[height];
   imageHSV = new colorHSV*[height];
   binaryImage = new bool*[height];
+  labeledImage = new int*[height];
 
   for ( int i = 0; i < height; i++ ) {
     imageRGB[i] = new colorRGB[width];
     backgroundRGB[i] = new colorRGB[width];
     imageHSV[i] = new colorHSV[width];
     binaryImage[i] = new bool[width];
+    labeledImage[i] = new int[width];
   }
 
   transformMatToRGBMatrix(backgroundImage, backgroundRGB);//doesn't count as computation since it is done only once
@@ -71,7 +91,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   transformRGBToHSV(imageRGB, imageHSV, height, width);
   binarizeHSVImage(imageHSV, binaryImage, height, width);
   closeImage(binaryImage, height, width);
-  
+  labelImage(binaryImage, labeledImage, height, width);
+
 
   t = clock() - t;
   cout << "Processing time = " << t << " miliseconds" << endl;
@@ -83,16 +104,19 @@ int _tmain(int argc, _TCHAR* argv[]) {
     for(int j = 0; j < width; j++) {
       Vec3b color;
 
+      color[0] = labeledImage[i][j] * 10 % 255;
+      color[1] = labeledImage[i][j] * 10 % 255;
+      color[2] = labeledImage[i][j] * 10 % 255;
       
-      if ( binaryImage[i][j] ) {
-        color[0] = 0;//imageRGB[i][j].blue;
-        color[1] = 150;//imageRGB[i][j].green;
-        color[2] = 100;//imageRGB[i][j].red;
-      } else {
-        color[0] = 255;
-        color[1] = 255;
-        color[2] = 255;
-      }
+      //if ( binaryImage[i][j] ) {
+      //  color[0] = 0;//imageRGB[i][j].blue;
+      //  color[1] = 150;//imageRGB[i][j].green;
+      //  color[2] = 100;//imageRGB[i][j].red;
+      //} else {
+      //  color[0] = 255;
+      //  color[1] = 255;
+      //  color[2] = 255;
+      //}
       result.at<Vec3b>(Point(j,i)) = color;
     }
   }

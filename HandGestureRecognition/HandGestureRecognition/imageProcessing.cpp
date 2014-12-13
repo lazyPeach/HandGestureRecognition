@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include "imageProcessing.h"
+#include <queue>
+
+using namespace std;
 
 bool** aux;
 
@@ -73,3 +76,51 @@ void closeImage(bool** image, int height, int width) {
     delete aux[i];
   delete aux;
 }
+
+void initializeLabelImage(int** labelImage, int height, int width) {
+  for (int i = 1; i < height-1; i++) 
+    for (int j = 1; j < width-1; j++) 
+      labelImage[i][j] = 0;
+}
+
+// checks if a point is not visisted, applies a label and pushes that point 
+void checkNeighbour(bool** binaryImage, int** labelImage, int xCoord, int yCoord, queue<Point2D>& pointsQueue, int label) {
+  if ( binaryImage[yCoord][xCoord] && labelImage[yCoord][xCoord] == 0 ) {
+    labelImage[yCoord][xCoord] = label;
+    Point2D newPt; newPt.x = xCoord; newPt.y = yCoord;
+    pointsQueue.push(newPt);
+  }
+}
+
+void labelEntireObject(bool** binaryImage, int** labelImage, Point2D startPoint, int label) {
+  queue<Point2D> pointsQueue;
+  pointsQueue.push(startPoint);
+  while( !pointsQueue.empty() ) {
+    Point2D pt = pointsQueue.front();
+    pointsQueue.pop();
+
+    checkNeighbour(binaryImage, labelImage, pt.x-1, pt.y, pointsQueue, label);
+    checkNeighbour(binaryImage, labelImage, pt.x+1, pt.y, pointsQueue, label);
+    checkNeighbour(binaryImage, labelImage, pt.x, pt.y+1, pointsQueue, label);
+    checkNeighbour(binaryImage, labelImage, pt.x, pt.y-1, pointsQueue, label);
+  }
+}
+
+//scan the image until you find a 
+void labelImage(bool** binaryImage, int** labelImage, int height, int width) {
+  initializeLabelImage(labelImage, height, width);
+  
+  int label = 0;
+
+  for (int i = 1; i < height-1; i++) {
+    for (int j = 1; j < width-1; j++) {
+      if (binaryImage[i][j] && (labelImage[i][j] == 0)) {//if not labeled foreground pixel
+        label++;
+        Point2D startPoint; startPoint.x = j; startPoint.y = i;
+        labelImage[startPoint.y][startPoint.x] = label;
+        labelEntireObject(binaryImage, labelImage, startPoint, label);
+      } 
+    }
+  }
+}
+
