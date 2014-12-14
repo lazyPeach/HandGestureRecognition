@@ -102,7 +102,7 @@ void checkNeighbour(bool** binaryImage, int** labelImage, int xCoord, int yCoord
 }
 
 // While labeling calculate the area
-int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point startPoint, int label) {
+int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point startPoint, int label, int height, int width) {
   int area = 0;
 
   queue<Point> pointsQueue;
@@ -111,10 +111,15 @@ int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point star
   while( !pointsQueue.empty() ) {
     Point pt = pointsQueue.front();
     pointsQueue.pop();
-    checkNeighbour(binaryImage, labelImage, pt.x-1, pt.y, pointsQueue, label);
-    checkNeighbour(binaryImage, labelImage, pt.x+1, pt.y, pointsQueue, label);
-    checkNeighbour(binaryImage, labelImage, pt.x, pt.y+1, pointsQueue, label);
-    checkNeighbour(binaryImage, labelImage, pt.x, pt.y-1, pointsQueue, label);
+
+    if ( (pt.x > 1 && pt.x < width-1) && (pt.y > 1 && pt.y < height-1) ) {
+
+      checkNeighbour(binaryImage, labelImage, pt.x-1, pt.y, pointsQueue, label);
+      checkNeighbour(binaryImage, labelImage, pt.x+1, pt.y, pointsQueue, label);
+      checkNeighbour(binaryImage, labelImage, pt.x, pt.y+1, pointsQueue, label);// if I comment this line release works as well
+      checkNeighbour(binaryImage, labelImage, pt.x, pt.y-1, pointsQueue, label);
+
+    }
     area++;
   }
 
@@ -141,7 +146,7 @@ void labelImage(bool** binaryImage, int** labelImage, int height, int width) {
         label++;
         Point startPoint(j,i);
         labelImage[startPoint.y][startPoint.x] = label;
-        int area = labelEntireObjectAndGetArea(binaryImage, labelImage, startPoint, label);
+        int area = labelEntireObjectAndGetArea(binaryImage, labelImage, startPoint, label, height, width);
 
         addElementToMap(label, startPoint, area);
       } 
