@@ -136,7 +136,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
   }
 
   //draw into image the center pt
-  //Point center(centerPoint.y, centerPoint.x);
   drawCenterFilledCircle(image, centerPoint);
 
   

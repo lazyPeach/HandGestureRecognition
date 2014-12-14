@@ -3,7 +3,7 @@
 
 //a structure that holds the 
 typedef struct _Component {
-  Point entryPt;
+  cv::Point entryPt;
   //int xEntry;
   //int yEntry;
   int area;
