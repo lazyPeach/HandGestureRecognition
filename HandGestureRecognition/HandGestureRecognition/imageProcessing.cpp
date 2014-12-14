@@ -1,10 +1,15 @@
 #include "stdafx.h"
-#include "imageProcessing.h"
+
 #include <queue>
 #include <map>
 #include <iostream>
+#include <opencv2/highgui/highgui.hpp>
+
+#include "imageProcessing.h"
 
 using namespace std;
+using namespace cv;
+
 
 typedef map<int, Component> ComponentsMap;
 
@@ -88,23 +93,23 @@ void initializeLabelImage(int** labelImage, int height, int width) {
 }
 
 // checks if a point is not visisted, applies a label and pushes that point 
-void checkNeighbour(bool** binaryImage, int** labelImage, int xCoord, int yCoord, queue<Point2D>& pointsQueue, int label) {
+void checkNeighbour(bool** binaryImage, int** labelImage, int xCoord, int yCoord, queue<Point>& pointsQueue, int label) {
   if ( binaryImage[yCoord][xCoord] && labelImage[yCoord][xCoord] == 0 ) {
     labelImage[yCoord][xCoord] = label;
-    Point2D newPt; newPt.x = xCoord; newPt.y = yCoord;
+    Point newPt(xCoord, yCoord);
     pointsQueue.push(newPt);
   }
 }
 
 // While labeling calculate the area
-int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point2D startPoint, int label) {
+int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point startPoint, int label) {
   int area = 0;
 
-  queue<Point2D> pointsQueue;
+  queue<Point> pointsQueue;
   pointsQueue.push(startPoint);
   
   while( !pointsQueue.empty() ) {
-    Point2D pt = pointsQueue.front();
+    Point pt = pointsQueue.front();
     pointsQueue.pop();
     checkNeighbour(binaryImage, labelImage, pt.x-1, pt.y, pointsQueue, label);
     checkNeighbour(binaryImage, labelImage, pt.x+1, pt.y, pointsQueue, label);
@@ -116,12 +121,10 @@ int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point2D st
   return area;
 }
 
-void addElementToMap(int label, Point2D startPoint, int area) {
+void addElementToMap(int label, Point startPoint, int area) {
   Component component;
-  component.xEntry = startPoint.x;
-  component.yEntry = startPoint.y;
+  component.entryPt = startPoint;
   component.area = area;
-
   componentsMap[label] = component;
 }
 
@@ -136,7 +139,7 @@ void labelImage(bool** binaryImage, int** labelImage, int height, int width) {
     for (int j = 1; j < width-1; j++) {
       if (binaryImage[i][j] && (labelImage[i][j] == 0)) {//if not labeled foreground pixel
         label++;
-        Point2D startPoint; startPoint.x = j; startPoint.y = i;
+        Point startPoint(j,i);
         labelImage[startPoint.y][startPoint.x] = label;
         int area = labelEntireObjectAndGetArea(binaryImage, labelImage, startPoint, label);
 
@@ -146,6 +149,7 @@ void labelImage(bool** binaryImage, int** labelImage, int height, int width) {
   }
 }
 
+// returns the label corresponding to the component with the maximum area
 int getLabelWithMaxArea() {
   int resultLabel;
   int maxArea = 0;
@@ -160,25 +164,21 @@ int getLabelWithMaxArea() {
   return resultLabel;
 }
 
-Point2D findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int width) {
+
+Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int width) {
   double cc=0, rc=0;
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-
       if (labeledImage[i][j] == maxAreaLabel) {
         cc += j;
         rc += i;
       }
-
     }
   }
 
   cc /= componentsMap[maxAreaLabel].area;
   rc /= componentsMap[maxAreaLabel].area;
-
-  Point2D returnPt;
-  returnPt.x = (int)rc;
-  returnPt.y = (int)cc;
+  Point returnPt( (int)cc, (int)rc );
 
   return returnPt;
 }

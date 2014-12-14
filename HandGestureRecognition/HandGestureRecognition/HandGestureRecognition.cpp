@@ -105,7 +105,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
   closeImage(binaryImage, height, width);
   labelImage(binaryImage, labeledImage, height, width);
   int maxAreaLabel = getLabelWithMaxArea();
-  Point2D centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
+  Point centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
 
 
   t = clock() - t;
@@ -136,8 +136,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   }
 
   //draw into image the center pt
-  Point center(centerPoint.y, centerPoint.x);
-  drawCenterFilledCircle(image, center);
+  //Point center(centerPoint.y, centerPoint.x);
+  drawCenterFilledCircle(image, centerPoint);
 
   
   imshow( "Initial", image );
