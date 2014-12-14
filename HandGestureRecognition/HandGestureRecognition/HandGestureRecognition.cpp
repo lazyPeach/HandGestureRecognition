@@ -46,6 +46,18 @@ void subtractBackground(int height, int width) {
 
 }
 
+void drawCenterFilledCircle(Mat& image, Point center) {
+  int thickness = -1;
+ int lineType = 8;
+
+ circle( image,
+         center,
+         5,
+         Scalar( 0, 0, 255 ),
+         CV_FILLED,
+         lineType );
+}
+
 int _tmain(int argc, _TCHAR* argv[]) {
   namedWindow("Initial",CV_WINDOW_AUTOSIZE);
   namedWindow("Result",CV_WINDOW_AUTOSIZE);
@@ -92,6 +104,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   binarizeHSVImage(imageHSV, binaryImage, height, width);
   closeImage(binaryImage, height, width);
   labelImage(binaryImage, labeledImage, height, width);
+  int maxAreaLabel = getLabelWithMaxArea();
+  Point2D centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
 
 
   t = clock() - t;
@@ -120,6 +134,11 @@ int _tmain(int argc, _TCHAR* argv[]) {
       result.at<Vec3b>(Point(j,i)) = color;
     }
   }
+
+  //draw into image the center pt
+  Point center(centerPoint.y, centerPoint.x);
+  drawCenterFilledCircle(image, center);
+
   
   imshow( "Initial", image );
   imshow("Result", result);
