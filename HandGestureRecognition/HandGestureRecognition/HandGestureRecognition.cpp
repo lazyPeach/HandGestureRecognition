@@ -13,6 +13,8 @@
 using namespace cv;
 using namespace std;
 
+extern map<int, Component> componentsMap;
+extern vector<Point> extremities;
 colorRGB** imageRGB;
 colorRGB** backgroundRGB;
 colorHSV** imageHSV;
@@ -66,7 +68,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
   cvSetMouseCallback("Result",mouseHandler,&mouseParam);
 
   Mat backgroundImage = imread("../samples/background.jpg", CV_LOAD_IMAGE_COLOR);
-  Mat image = imread("../samples/img2.jpg", CV_LOAD_IMAGE_COLOR);
+  Mat image = imread("../samples/img1.jpg", CV_LOAD_IMAGE_COLOR);
 
   if(! image.data ) { // Check for invalid input
     cout << "Could not open or find the image" << std::endl ;
@@ -106,7 +108,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   labelImage(binaryImage, labeledImage, height, width);
   int maxAreaLabel = getLabelWithMaxArea();
   Point centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
-
+  contourTracing(binaryImage, height, width, maxAreaLabel);
+   
 
   t = clock() - t;
   cout << "Processing time = " << t << " miliseconds" << endl;
@@ -137,6 +140,15 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
   //draw into image the center pt
   drawCenterFilledCircle(image, centerPoint);
+  //drawCenterFilledCircle(image, componentsMap[maxAreaLabel].entryPt);
+
+  for (vector<Point>::iterator it = extremities.begin(); it != extremities.end(); it++) {
+    Point dummyPoint(it->x, it->y);
+    drawCenterFilledCircle(image, dummyPoint);
+
+  }
+
+
 
   
   imshow( "Initial", image );

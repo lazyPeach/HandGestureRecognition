@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <map>
+#include <vector>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -14,6 +15,7 @@ using namespace cv;
 typedef map<int, Component> ComponentsMap;
 
 ComponentsMap componentsMap;
+vector<Point> extremities;
 bool** aux;
 
 void initializeAux(bool** image, int height, int width) {
@@ -38,6 +40,8 @@ void erodeImage(bool** image, int height, int width) {
   for (int i = 1; i < height-1; i++) {
     for (int j = 1; j < width-1; j++) {
       if (image[i][j]) {
+        /*aux[i][j] = image[i][j-1] && image[i][j+1] &&
+          image[i-1][j] && image[i+1][j];*/
         aux[i][j] = image[i][j-1] && image[i][j+1] && 
           image[i-1][j] && image[i-1][j-1] && image[i-1][j+1] && 
           image[i+1][j] && image[i+1][j-1] && image[i+1][j+1];
@@ -187,4 +191,90 @@ Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int widt
 
   return returnPt;
 }
+
+void findExtremities(vector<Point> pointsList) {
+  //prepare vector
+  for (int i = 2; i < pointsList.size()-1; i++) {
+    
+    //comp with prev and after
+    if ( pointsList[i].y >= pointsList[i-1].y
+      && pointsList[i].y >= pointsList[i-2].y
+      && pointsList[i].y >= pointsList[i+1].y
+      && pointsList[i].y >= pointsList[i+2].y
+        ) {
+          //cout<< "found local maxima " << pointsList[i].x << " " << pointsList[i].y << endl; 
+          extremities.push_back(pointsList[i]);
+    }
+
+  }
+
+  //for (int i = 0; i < )
+  
+  /*list<Point>::iterator it = pointsList.begin();
+  it++; it++;*/
+  //Point pt = pointsList[pointsList.size()-1];
+ //int x = 0;
+/*
+  for ( ; it != pointsList.end(); it++) {
+    
+
+
+
+
+  }
+*/
+
+
+}
+
+/*
+ *     3 2 1
+ *      \|/
+ *     4-P-0
+ *      /|\
+ *     5 6 7
+ */
+void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel) {
+  Point crtPoint = componentsMap[maxAreaLabel].entryPt;
+  int dx[] = {1,1,0,-1,-1,-1,0,1};
+  int dy[] = {0,-1,-1,-1,0,1,1,1};
+  int dir = 7;
+
+  vector<Point> points;
+
+  while(true){
+    //compute the position to start searching for the next point
+    if (dir % 2 == 0)
+      dir = (dir + 7) % 8;
+    else
+      dir = (dir + 6) % 8;
+
+
+
+    //go through all neighbors until you find a black one
+    while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
+      dir = (dir + 1) % 8 ;
+
+    //if (dir == 1) {
+    //  cout << "found an up at " << crtPoint.x + dx[dir] << " " << crtPoint.y + dy[dir] << endl;
+    //}
+
+    //take the next point
+    crtPoint.x = crtPoint.x + dx[dir];
+    crtPoint.y = crtPoint.y + dy[dir];
+    binaryImage[crtPoint.y][crtPoint.x] = 0;
+    points.push_back(crtPoint);
+
+    if(points.size() > 2)
+      if ( (crtPoint.x == points.front().x) && (crtPoint.y == points.front().y))//crt point == start point
+        break;
+  }	
+
+  // prepare list for parsing
+  //remove last element since it is equal to the first
+  points.pop_back();
+ 
+  findExtremities(points);
+}
+
 

@@ -15,5 +15,6 @@ void closeImage(bool** image, int height, int width);
 void labelImage(bool** binaryImage, int** labelImage, int height, int width);
 int getLabelWithMaxArea();
 cv::Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int width);
+void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel);
 
 #endif
