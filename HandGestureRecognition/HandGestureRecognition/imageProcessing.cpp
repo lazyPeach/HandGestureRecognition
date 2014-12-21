@@ -3,6 +3,7 @@
 #include <queue>
 #include <map>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <algorithm>
 #include <opencv2/highgui/highgui.hpp>
@@ -16,15 +17,14 @@ using namespace cv;
 typedef map<int, Component> ComponentsMap;
 
 ComponentsMap componentsMap;
-vector<Point> hullPoints;
 
 
 vector<int> verticalProjectionVector;
 bool** aux;
 
 vector<HullPoint> handPoints;
-vector<HullPoint> H;
-
+vector<HullPoint> hullPoints;
+list<Point> lista;
 
 
 void initializeAux(bool** image, int height, int width) {
@@ -210,44 +210,14 @@ Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int widt
  *     5 6 7
  */
 void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel) {
-  Point crtPoint = componentsMap[maxAreaLabel].entryPt;
   int dx[] = {1,1,0,-1,-1,-1,0,1};
   int dy[] = {0,-1,-1,-1,0,1,1,1};
   int dir = 7;
 
-  vector<Point> points;
-
-  while(true){
-    //compute the position to start searching for the next point
-    if (dir % 2 == 0)
-      dir = (dir + 7) % 8;
-    else
-      dir = (dir + 6) % 8;
-
-
-
-    //go through all neighbors until you find a black one
-    while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
-      dir = (dir + 1) % 8 ;
-
-    //if (dir == 1) {
-    //  cout << "found an up at " << crtPoint.x + dx[dir] << " " << crtPoint.y + dy[dir] << endl;
-    //}
-
-    //take the next point
-    crtPoint.x = crtPoint.x + dx[dir];
-    crtPoint.y = crtPoint.y + dy[dir];
-    binaryImage[crtPoint.y][crtPoint.x] = 0;
-    points.push_back(crtPoint);
-
-    if(points.size() > 2)
-      if ( (crtPoint.x == points.front().x) && (crtPoint.y == points.front().y))//crt point == start point
-        break;
-  }	
+  	
 
   // prepare list for parsing
   //remove last element since it is equal to the first
-  points.pop_back();
  
 }
 
@@ -272,9 +242,74 @@ BigInt cross(const HullPoint &O, const HullPoint &A, const HullPoint &B) {
 	return (A.x - O.x) * (BigInt)(B.y - O.y) - (A.y - O.y) * (BigInt)(B.x - O.x);
 }
 
+// not usefull - maybe for future improvement???
+cv::Point getConvexDefect(bool** binaryImage, Point startPoint, Point endPoint, Point centerPoint) {
+  Point result = startPoint;
+  int dx[] = {1,1,0,-1,-1,-1,0,1};
+  int dy[] = {0,-1,-1,-1,0,1,1,1};
+
+  if (centerPoint.y > startPoint.y && centerPoint.y > endPoint.y) { // center point is below -> find maxY
+    //contour tracing fromstart to end
+    Point crtPoint = startPoint;
+
+    int dir = 7;
+
+    if (startPoint != endPoint)
+
+    while(true){
+      //compute the position to start searching for the next point
+      if (dir % 2 == 0)
+        dir = (dir + 7) % 8;
+      else
+        dir = (dir + 6) % 8;
+
+      //go through all neighbors until you find a black one
+      while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
+        dir = (dir + 1) % 8 ;
+
+      //take the next point
+      crtPoint.x = crtPoint.x + dx[dir];
+      crtPoint.y = crtPoint.y + dy[dir];
+      binaryImage[crtPoint.y][crtPoint.x] = 0;
+
+      if (crtPoint.y > result.y) result = crtPoint;
+      
+      if ( (crtPoint.x == endPoint.x) && (crtPoint.y == endPoint.y)) {
+        int mniezo = 4;  
+        break;
+      }
+    }
+
+  }
+
+  int x = 0;
+
+  return result;
+}
+
+void constructResult() {
+  vector<HullPoint>::iterator it = hullPoints.begin();
+  Point p(it->x, it->y);
+  lista.push_back(p);
+
+  // pt fiecare pct fac contour tracing
+  while (it != hullPoints.end()) {
+    
+    // at least one of the points to be greater than 20 -> points don't belong to the same finger
+    if ( !it->up && ((it->x - lista.back().x) > 30 || abs(it->y - lista.back().y) > 30 )) {
+      Point pt(it->x, it->y);
+      lista.push_back(pt);
+    }
+    
+    it++;
+  }
+
+
+}
+
 void convexHull() {
   int n = (int)handPoints.size(), k = 0;
-  H.resize(2*n);
+  hullPoints.resize(2*n);
 	
   // Sort points lexicographically
   sort(handPoints.begin(), handPoints.end());
@@ -282,29 +317,18 @@ void convexHull() {
 	
   // Build lower hull
 	for (int i = 0; i < n; i++) {
-    while (k >= 2 && cross(H[k-2], H[k-1], handPoints[i]) <= 0) k--;
+    while (k >= 2 && cross(hullPoints[k-2], hullPoints[k-1], handPoints[i]) <= 0) k--;
     handPoints[i].up = false;
-    H[k++] = handPoints[i];
-
+    hullPoints[k++] = handPoints[i];
 	}
  //
 	// Build upper hull
 	for (int i = n-2, t = k+1; i >= 0; i--) {
-    while (k >= t && cross(H[k-2], H[k-1], handPoints[i]) <= 0) k--;
+    while (k >= t && cross(hullPoints[k-2], hullPoints[k-1], handPoints[i]) <= 0) k--;
     handPoints[i].up = true;
-    H[k++] = handPoints[i];
+    hullPoints[k++] = handPoints[i];
 	}
 
-	H.resize(k);
   hullPoints.resize(k);
-
-  for (int i = 0; i < k; i++) {
-    Point p;
-    p.x = H[i].x;
-    p.y = H[i].y;
-    hullPoints[i] = p;
-  }
-	 x = 9;
-  ////return H;
 }
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <Windows.h>
 #include <time.h>
+#include <list>
 
 #include "defines.h"
 #include "transformation.h"
@@ -15,8 +16,8 @@ using namespace std;
 
 extern map<int, Component> componentsMap;
 extern vector<Point> extremities;
-extern vector<Point> hullPoints;
-extern vector<HullPoint> H;
+//extern vector<HullPoint> hullPoints;
+extern list<Point> lista;
 colorRGB** imageRGB;
 colorRGB** backgroundRGB;
 colorHSV** imageHSV;
@@ -107,12 +108,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   Point centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
   createVectorOfHandPoints(maxAreaLabel, labeledImage, height, width);//take care... this is 
   convexHull();
+  constructResult();
 
-  //t = clock() - t;
-  //cout << "Processing time = " << t << " miliseconds" << endl;
-  //cout << "Processing time = " << t/(float)CLOCKS_PER_SEC << " seconds" << endl;
-
-  //
   //put the binarization matrix in result
   for(int i = 0; i < height; i++) {
     for(int j = 0; j < width; j++) {
@@ -137,31 +134,14 @@ int _tmain(int argc, _TCHAR* argv[]) {
   
   //draw into image the center pt
   drawFilledCircle(image, centerPoint, 5);
-  /*
-  for (int i = 0; i < hullPoints.size(); i++) {
-    drawFilledCircle(image, hullPoints[i], 2);
-  }*/
-
-  for (int i = 0; i < H.size(); i++) {
-    //drawFilledCircle(image, hullPoints[i], 2);
-    Point p(H[i].x, H[i].y); 
-    
-    if (H[i].up) {
-
+  
+  for (list<Point>::iterator it = lista.begin(); it != lista.end(); it++) {
     circle( image,
-         p,
-         2,
-         Scalar( 0, 0, 255 ),
-         CV_FILLED,
-         8 );
-    } else {
-      circle( image,
-         p,
+         *it,
          2,
          Scalar( 255, 0, 0 ),
          CV_FILLED,
          8 );
-    }
   }
 
     t = clock() - t;
