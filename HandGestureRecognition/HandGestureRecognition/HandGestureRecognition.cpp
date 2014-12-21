@@ -15,6 +15,8 @@ using namespace std;
 
 extern map<int, Component> componentsMap;
 extern vector<Point> extremities;
+extern vector<Point> hullPoints;
+extern vector<HullPoint> H;
 colorRGB** imageRGB;
 colorRGB** backgroundRGB;
 colorHSV** imageHSV;
@@ -27,7 +29,7 @@ void mouseHandler(int event, int y, int x, int flags, void* param) {
         cout << endl;
         cout << "mouse at position: " << x << " " << y << endl;
         cout << "Label: " << labeledImage[x][y] << endl;
-
+        cout << "HSV: " << imageHSV[x][y].hue << " " << imageHSV[x][y].saturation <<endl;
         break;
     default:
         break;
@@ -48,16 +50,13 @@ void subtractBackground(int height, int width) {
 
 }
 
-void drawCenterFilledCircle(Mat& image, Point center) {
-  int thickness = -1;
- int lineType = 8;
-
+void drawFilledCircle(Mat& image, Point center, int thickness) {
  circle( image,
          center,
-         5,
+         thickness,
          Scalar( 0, 0, 255 ),
          CV_FILLED,
-         lineType );
+         8 );
 }
 
 int _tmain(int argc, _TCHAR* argv[]) {
@@ -68,7 +67,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
   cvSetMouseCallback("Result",mouseHandler,&mouseParam);
 
   Mat backgroundImage = imread("../samples/background.jpg", CV_LOAD_IMAGE_COLOR);
-  Mat image = imread("../samples/img1.jpg", CV_LOAD_IMAGE_COLOR);
+  Mat image = imread("../samples/img0.jpg", CV_LOAD_IMAGE_COLOR);
 
   if(! image.data ) { // Check for invalid input
     cout << "Could not open or find the image" << std::endl ;
@@ -76,8 +75,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
   }
   
   Mat result(image.rows, image.cols, image.type());
-
-
   
   int height = image.rows;
   int width = image.cols;
@@ -108,45 +105,68 @@ int _tmain(int argc, _TCHAR* argv[]) {
   labelImage(binaryImage, labeledImage, height, width);
   int maxAreaLabel = getLabelWithMaxArea();
   Point centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
-  contourTracing(binaryImage, height, width, maxAreaLabel);
-   
+  createVectorOfHandPoints(maxAreaLabel, labeledImage, height, width);//take care... this is 
+  convexHull();
 
-  t = clock() - t;
-  cout << "Processing time = " << t << " miliseconds" << endl;
-  cout << "Processing time = " << t/(float)CLOCKS_PER_SEC << " seconds" << endl;
+  //t = clock() - t;
+  //cout << "Processing time = " << t << " miliseconds" << endl;
+  //cout << "Processing time = " << t/(float)CLOCKS_PER_SEC << " seconds" << endl;
 
-
+  //
   //put the binarization matrix in result
   for(int i = 0; i < height; i++) {
     for(int j = 0; j < width; j++) {
       Vec3b color;
 
-      color[0] = labeledImage[i][j] * 10 % 255;
+      /*color[0] = labeledImage[i][j] * 10 % 255;
       color[1] = labeledImage[i][j] * 10 % 255;
-      color[2] = labeledImage[i][j] * 10 % 255;
+      color[2] = labeledImage[i][j] * 10 % 255;*/
       
-      //if ( binaryImage[i][j] ) {
-      //  color[0] = 0;//imageRGB[i][j].blue;
-      //  color[1] = 150;//imageRGB[i][j].green;
-      //  color[2] = 100;//imageRGB[i][j].red;
-      //} else {
-      //  color[0] = 255;
-      //  color[1] = 255;
-      //  color[2] = 255;
-      //}
+      if ( binaryImage[i][j] ) {
+        color[0] = 0;//imageRGB[i][j].blue;
+        color[1] = 150;//imageRGB[i][j].green;
+        color[2] = 100;//imageRGB[i][j].red;
+      } else {
+        color[0] = 255;
+        color[1] = 255;
+        color[2] = 255;
+      }
       result.at<Vec3b>(Point(j,i)) = color;
     }
   }
-
+  
   //draw into image the center pt
-  drawCenterFilledCircle(image, centerPoint);
-  //drawCenterFilledCircle(image, componentsMap[maxAreaLabel].entryPt);
+  drawFilledCircle(image, centerPoint, 5);
+  /*
+  for (int i = 0; i < hullPoints.size(); i++) {
+    drawFilledCircle(image, hullPoints[i], 2);
+  }*/
 
-  for (vector<Point>::iterator it = extremities.begin(); it != extremities.end(); it++) {
-    Point dummyPoint(it->x, it->y);
-    drawCenterFilledCircle(image, dummyPoint);
+  for (int i = 0; i < H.size(); i++) {
+    //drawFilledCircle(image, hullPoints[i], 2);
+    Point p(H[i].x, H[i].y); 
+    
+    if (H[i].up) {
 
+    circle( image,
+         p,
+         2,
+         Scalar( 0, 0, 255 ),
+         CV_FILLED,
+         8 );
+    } else {
+      circle( image,
+         p,
+         2,
+         Scalar( 255, 0, 0 ),
+         CV_FILLED,
+         8 );
+    }
   }
+
+    t = clock() - t;
+   cout << "Processing time = " << t << " miliseconds" << endl;
+  cout << "Processing time = " << t/(float)CLOCKS_PER_SEC << " seconds" << endl;
 
 
 

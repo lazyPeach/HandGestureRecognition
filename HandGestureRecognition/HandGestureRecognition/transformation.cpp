@@ -72,7 +72,7 @@ void transformRGBToHSV(colorRGB** imageRGB, colorHSV** imageHSV, int height, int
 }
 
 bool isHueInBounds(double hue) {
-  return ( (hue > 0 && hue < 30) || (hue > 300 && hue < 320) );
+  return ( (hue > 0 && hue < 80) || (hue > 300 && hue < 320) );
 }
 
 bool isSaturationInBounds(double saturation) {

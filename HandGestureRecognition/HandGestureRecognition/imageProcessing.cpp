@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include <opencv2/highgui/highgui.hpp>
 
 #include "imageProcessing.h"
@@ -15,8 +16,16 @@ using namespace cv;
 typedef map<int, Component> ComponentsMap;
 
 ComponentsMap componentsMap;
-vector<Point> extremities;
+vector<Point> hullPoints;
+
+
+vector<int> verticalProjectionVector;
 bool** aux;
+
+vector<HullPoint> handPoints;
+vector<HullPoint> H;
+
+
 
 void initializeAux(bool** image, int height, int width) {
   for (int i = 1; i < height; i++) {
@@ -40,8 +49,9 @@ void erodeImage(bool** image, int height, int width) {
   for (int i = 1; i < height-1; i++) {
     for (int j = 1; j < width-1; j++) {
       if (image[i][j]) {
-        /*aux[i][j] = image[i][j-1] && image[i][j+1] &&
-          image[i-1][j] && image[i+1][j];*/
+        /*aux[i][j] = image[i][j-1] && image[i][j+1] && 
+                image[i-1][j] && image[i+1][j];
+        */
         aux[i][j] = image[i][j-1] && image[i][j+1] && 
           image[i-1][j] && image[i-1][j-1] && image[i-1][j+1] && 
           image[i+1][j] && image[i+1][j-1] && image[i+1][j+1];
@@ -61,6 +71,7 @@ void dilateImage(bool** image, int height, int width) {
         aux[i][j-1] = true;aux[i][j+1] = true; 
         aux[i-1][j] = true;aux[i-1][j-1] = true;aux[i-1][j+1] = true; 
         aux[i+1][j] = true;aux[i+1][j-1] = true;aux[i+1][j+1] = true;
+
       }
     }
   }
@@ -111,7 +122,7 @@ int labelEntireObjectAndGetArea(bool** binaryImage, int** labelImage, Point star
 
   queue<Point> pointsQueue;
   pointsQueue.push(startPoint);
-  
+
   while( !pointsQueue.empty() ) {
     Point pt = pointsQueue.front();
     pointsQueue.pop();
@@ -173,58 +184,22 @@ int getLabelWithMaxArea() {
   return resultLabel;
 }
 
-
 Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int width) {
-  double cc=0, rc=0;
+  double xc=0, yc=0;
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
       if (labeledImage[i][j] == maxAreaLabel) {
-        cc += j;
-        rc += i;
+        xc += j;
+        yc += i;
       }
     }
   }
 
-  cc /= componentsMap[maxAreaLabel].area;
-  rc /= componentsMap[maxAreaLabel].area;
-  Point returnPt( (int)cc, (int)rc );
+  xc /= componentsMap[maxAreaLabel].area;
+  yc /= componentsMap[maxAreaLabel].area;
+  Point returnPt( (int)xc, (int)yc );
 
   return returnPt;
-}
-
-void findExtremities(vector<Point> pointsList) {
-  //prepare vector
-  for (int i = 2; i < pointsList.size()-1; i++) {
-    
-    //comp with prev and after
-    if ( pointsList[i].y >= pointsList[i-1].y
-      && pointsList[i].y >= pointsList[i-2].y
-      && pointsList[i].y >= pointsList[i+1].y
-      && pointsList[i].y >= pointsList[i+2].y
-        ) {
-          //cout<< "found local maxima " << pointsList[i].x << " " << pointsList[i].y << endl; 
-          extremities.push_back(pointsList[i]);
-    }
-
-  }
-
-  //for (int i = 0; i < )
-  
-  /*list<Point>::iterator it = pointsList.begin();
-  it++; it++;*/
-  //Point pt = pointsList[pointsList.size()-1];
- //int x = 0;
-/*
-  for ( ; it != pointsList.end(); it++) {
-    
-
-
-
-
-  }
-*/
-
-
 }
 
 /*
@@ -274,7 +249,62 @@ void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel)
   //remove last element since it is equal to the first
   points.pop_back();
  
-  findExtremities(points);
 }
 
+void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width) {
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < height; j++) {
+      if (labeledImage[i][j] == maxAreaLabel) {
+        HullPoint p(j,i);
+        handPoints.push_back(p);
+      }
+    }
+  }
+
+  int x = 0; 
+}
+
+
+// 2D cross product of OA and OB vectors, i.e. z-component of their 3D cross product.
+// Returns a positive value, if OAB makes a counter-clockwise turn,
+// negative for clockwise turn, and zero if the points are collinear.
+BigInt cross(const HullPoint &O, const HullPoint &A, const HullPoint &B) {
+	return (A.x - O.x) * (BigInt)(B.y - O.y) - (A.y - O.y) * (BigInt)(B.x - O.x);
+}
+
+void convexHull() {
+  int n = (int)handPoints.size(), k = 0;
+  H.resize(2*n);
+	
+  // Sort points lexicographically
+  sort(handPoints.begin(), handPoints.end());
+  int x = 0;
+	
+  // Build lower hull
+	for (int i = 0; i < n; i++) {
+    while (k >= 2 && cross(H[k-2], H[k-1], handPoints[i]) <= 0) k--;
+    handPoints[i].up = false;
+    H[k++] = handPoints[i];
+
+	}
+ //
+	// Build upper hull
+	for (int i = n-2, t = k+1; i >= 0; i--) {
+    while (k >= t && cross(H[k-2], H[k-1], handPoints[i]) <= 0) k--;
+    handPoints[i].up = true;
+    H[k++] = handPoints[i];
+	}
+
+	H.resize(k);
+  hullPoints.resize(k);
+
+  for (int i = 0; i < k; i++) {
+    Point p;
+    p.x = H[i].x;
+    p.y = H[i].y;
+    hullPoints[i] = p;
+  }
+	 x = 9;
+  ////return H;
+}
 
