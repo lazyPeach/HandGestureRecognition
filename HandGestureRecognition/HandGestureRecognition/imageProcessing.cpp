@@ -222,6 +222,7 @@ void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel)
 }
 
 void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width) {
+  handPoints.clear();
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < height; j++) {
       if (labeledImage[i][j] == maxAreaLabel) {
@@ -290,6 +291,7 @@ cv::Point getConvexDefect(bool** binaryImage, Point startPoint, Point endPoint, 
 void constructResult() {
   vector<HullPoint>::iterator it = hullPoints.begin();
   Point p(it->x, it->y);
+  lista.clear();
   lista.push_back(p);
 
   // pt fiecare pct fac contour tracing
@@ -309,6 +311,7 @@ void constructResult() {
 
 void convexHull() {
   int n = (int)handPoints.size(), k = 0;
+  hullPoints.clear();
   hullPoints.resize(2*n);
 	
   // Sort points lexicographically
