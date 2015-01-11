@@ -40,6 +40,6 @@ cv::Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int 
 void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel);
 void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width);
 void convexHull();
-void constructResult();
+void constructResult(bool** binaryImage);
 
 #endif

@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -17,14 +18,13 @@ using namespace cv;
 typedef map<int, Component> ComponentsMap;
 
 ComponentsMap componentsMap;
-
-
 vector<int> verticalProjectionVector;
 bool** aux;
-
 vector<HullPoint> handPoints;
 vector<HullPoint> hullPoints;
-list<Point> lista;
+list<Point> contourList;
+list<Point> fingerPoints;
+list<Point> defectPoints;
 
 
 void initializeAux(bool** image, int height, int width) {
@@ -210,15 +210,43 @@ Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int widt
  *     5 6 7
  */
 void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel) {
+  Point crtPoint = componentsMap[maxAreaLabel].entryPt;
   int dx[] = {1,1,0,-1,-1,-1,0,1};
   int dy[] = {0,-1,-1,-1,0,1,1,1};
   int dir = 7;
 
-  	
+  vector<Point> points;
 
-  // prepare list for parsing
+  while(true){
+    //compute the position to start searching for the next point
+    if (dir % 2 == 0)
+      dir = (dir + 7) % 8;
+    else
+      dir = (dir + 6) % 8;
+
+    //go through all neighbors until you find a black one
+    while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
+      dir = (dir + 1) % 8 ;
+
+    //take the next point
+    crtPoint.x = crtPoint.x + dx[dir];
+    crtPoint.y = crtPoint.y + dy[dir];
+    binaryImage[crtPoint.y][crtPoint.x] = 0;
+    points.push_back(crtPoint);
+
+    if(points.size() > 2)
+      if ( (crtPoint.x == points.front().x) && (crtPoint.y == points.front().y))//crt point == start point
+        break;
+  }    
+
   //remove last element since it is equal to the first
- 
+  points.pop_back();
+
+  int x = 0;
+  for (auto it = points.begin(); it != points.end(); ++it) {
+    Point p(it->x, it->y);
+    contourList.push_back(p);
+  } 
 }
 
 void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width) {
@@ -276,7 +304,6 @@ cv::Point getConvexDefect(bool** binaryImage, Point startPoint, Point endPoint, 
       if (crtPoint.y > result.y) result = crtPoint;
       
       if ( (crtPoint.x == endPoint.x) && (crtPoint.y == endPoint.y)) {
-        int mniezo = 4;  
         break;
       }
     }
@@ -286,27 +313,6 @@ cv::Point getConvexDefect(bool** binaryImage, Point startPoint, Point endPoint, 
   int x = 0;
 
   return result;
-}
-
-void constructResult() {
-  vector<HullPoint>::iterator it = hullPoints.begin();
-  Point p(it->x, it->y);
-  lista.clear();
-  lista.push_back(p);
-
-  // pt fiecare pct fac contour tracing
-  while (it != hullPoints.end()) {
-    
-    // at least one of the points to be greater than 20 -> points don't belong to the same finger
-    if ( !it->up && ((it->x - lista.back().x) > 30 || abs(it->y - lista.back().y) > 30 )) {
-      Point pt(it->x, it->y);
-      lista.push_back(pt);
-    }
-    
-    it++;
-  }
-
-
 }
 
 void convexHull() {
@@ -324,7 +330,7 @@ void convexHull() {
     handPoints[i].up = false;
     hullPoints[k++] = handPoints[i];
 	}
- //
+
 	// Build upper hull
 	for (int i = n-2, t = k+1; i >= 0; i--) {
     while (k >= t && cross(hullPoints[k-2], hullPoints[k-1], handPoints[i]) <= 0) k--;
@@ -332,6 +338,109 @@ void convexHull() {
     hullPoints[k++] = handPoints[i];
 	}
 
+  hullPoints.pop_back();// last element is duplicated
+
   hullPoints.resize(k);
 }
 
+void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point& resPt, float& height) {
+  int dx[] = {1,1,0,-1,-1,-1,0,1};
+  int dy[] = {0,-1,-1,-1,0,1,1,1};
+  int dir = 7;
+
+  Point crtPoint = p1;
+
+  vector<Point> points;
+
+  
+
+  // get the line between the two points
+  float a = p1.y - p2.y;
+  float b = p2.x - p1.x;
+  float c = p1.x*p2.y - p2.x*p1.y;
+
+  while(true){
+    //compute the position to start searching for the next point
+    if (dir % 2 == 0)
+      dir = (dir + 7) % 8;
+    else
+      dir = (dir + 6) % 8;
+
+    //go through all neighbors until you find a black one
+    while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
+      dir = (dir + 1) % 8 ;
+
+    //take the next point
+    crtPoint.x = crtPoint.x + dx[dir];
+    crtPoint.y = crtPoint.y + dy[dir];
+    binaryImage[crtPoint.y][crtPoint.x] = 0;
+    points.push_back(crtPoint);
+
+    // for each point check the height
+    float f = abs(a * crtPoint.x + b * crtPoint.y + c);
+    float d = sqrt(a * a + b * b);
+    float dist = f / d;
+    if (dist > height) {
+      height = dist;
+      resPt = crtPoint;
+    }
+
+
+
+    //verifica daca si x si y sunt pre aproape
+    if ( (crtPoint.x <= p2.x+2 && crtPoint.x > p2.x - 2 ) && (crtPoint.y <= p2.y + 2 && crtPoint.y > p2.y - 2)) {
+      int x = 0;
+      break;
+    }
+  }    
+
+}
+
+// this can be improved
+void constructResult(bool** binaryImage) {
+  // take points from convex hull 2 by 2
+  // first find two points that could resemble two fingers
+  list<Point> tempList;
+  vector<HullPoint>::iterator it = hullPoints.begin();
+  Point p(it->x, it->y);
+
+  fingerPoints.clear();
+
+  for (auto it = hullPoints.begin(); it != hullPoints.end()-1; ++it) {
+    Point distPt;
+    float height = 0;
+
+    Point p1(it->x, it->y);
+    Point p2((it+1)->x, (it+1)->y);
+
+    getPointWithMaxHeightBetween(binaryImage, p1, p2, distPt, height);
+
+    if (height > 30) {
+      tempList.push_back(p1);
+      tempList.push_back(p2);
+      defectPoints.push_back(distPt);
+    }
+
+
+
+  }
+
+  int x = 0;
+
+  //consider first point as being a finger and insert it into final list
+  fingerPoints.push_back(tempList.front());
+
+  // go through all points and check if they are close to the last point in the finger list or not
+  for (auto it = tempList.begin(); it != tempList.end(); ++it) {
+    // check distance from new point to the last point in the list
+    float distance = sqrt( (it->x - fingerPoints.back().x) * (it->x - fingerPoints.back().x)
+      + (it->y - fingerPoints.back().y) * (it->y - fingerPoints.back().y) );
+
+    if ( distance > 15 ) {
+      fingerPoints.push_back(*it);
+    }
+  }
+
+  int y = 0;
+
+}
