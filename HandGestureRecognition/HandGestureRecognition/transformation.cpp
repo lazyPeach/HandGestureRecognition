@@ -3,6 +3,14 @@
 
 using namespace cv;
 
+
+double  getValue(double red, double green, double blue);
+double  getMinRGB(double red, double green, double blue);
+double  getSaturation(double red, double green, double blue, double value);
+double  getHue(double red, double green, double blue, double value, double saturation);
+bool    isHueInBounds(double hue);
+bool    isSaturationInBounds(double saturation);
+
 void transformMatToRGBMatrix(Mat image, colorRGB** matrixRGB) {
   for(int i = 0; i < image.rows; i++) {
     for(int j = 0; j < image.cols; j++) {
@@ -15,11 +23,37 @@ void transformMatToRGBMatrix(Mat image, colorRGB** matrixRGB) {
   }
 }
 
+void transformRGBToHSV(colorRGB** imageRGB, colorHSV** imageHSV, int height, int width) {
+  for(int i = 0; i < height; i++) {
+    for(int j = 0; j < width; j++) {
+      imageHSV[i][j].value = getValue(imageRGB[i][j].red, 
+                                      imageRGB[i][j].green, 
+                                      imageRGB[i][j].blue);
+      imageHSV[i][j].saturation = getSaturation(imageRGB[i][j].red,
+                                                imageRGB[i][j].green,
+                                                imageRGB[i][j].blue,
+                                                imageHSV[i][j].value); 
+      imageHSV[i][j].hue = getHue(imageRGB[i][j].red,
+                                  imageRGB[i][j].green,
+                                  imageRGB[i][j].blue,
+                                  imageHSV[i][j].value,
+                                  imageHSV[i][j].saturation);
+    }
+  }
+}
+
+void binarizeHSVImage(colorHSV** imageHSV, bool** binaryImage, int height, int width) {
+  for(int i = 0; i < height; i++) {
+    for(int j = 0; j < width; j++) {
+      binaryImage[i][j] = isHueInBounds(imageHSV[i][j].hue) && 
+                          isSaturationInBounds(imageHSV[i][j].saturation);
+    }
+  }
+}
+
 double getValue(double red, double green, double blue) {
-  double ret =  ( (red >= green) && (red >= blue) ) ? red : 
+  return ( (red >= green) && (red >= blue) ) ? red : 
                 ( green >= blue ) ? green : blue;
-  
-  return ret;
 }
 
 double getMinRGB(double red, double green, double blue) {
@@ -52,38 +86,11 @@ double getHue(double red, double green, double blue, double value, double satura
   return ret;
 }
 
-void transformRGBToHSV(colorRGB** imageRGB, colorHSV** imageHSV, int height, int width) {
-  for(int i = 0; i < height; i++) {
-    for(int j = 0; j < width; j++) {
-      imageHSV[i][j].value = getValue(imageRGB[i][j].red, 
-                                      imageRGB[i][j].green, 
-                                      imageRGB[i][j].blue);
-      imageHSV[i][j].saturation = getSaturation(imageRGB[i][j].red,
-                                                imageRGB[i][j].green,
-                                                imageRGB[i][j].blue,
-                                                imageHSV[i][j].value); 
-      imageHSV[i][j].hue = getHue(imageRGB[i][j].red,
-                                  imageRGB[i][j].green,
-                                  imageRGB[i][j].blue,
-                                  imageHSV[i][j].value,
-                                  imageHSV[i][j].saturation);
-    }
-  }
-}
-
+// todo define bounds in .h file
 bool isHueInBounds(double hue) {
   return ( (hue > 0 && hue < 30) || (hue > 300 && hue < 360) );
 }
 
 bool isSaturationInBounds(double saturation) {
   return ( saturation > 0.15 && saturation < 0.9 );
-}
-
-void binarizeHSVImage(colorHSV** imageHSV, bool** binaryImage, int height, int width) {
-  for(int i = 0; i < height; i++) {
-    for(int j = 0; j < width; j++) {
-      binaryImage[i][j] = isHueInBounds(imageHSV[i][j].hue) && 
-                          isSaturationInBounds(imageHSV[i][j].saturation);
-    }
-  }
 }

@@ -209,6 +209,7 @@ Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int widt
  *      /|\
  *     5 6 7
  */
+
 void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel) {
   Point crtPoint = componentsMap[maxAreaLabel].entryPt;
   int dx[] = {1,1,0,-1,-1,-1,0,1};
