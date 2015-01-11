@@ -4,6 +4,19 @@
 #include "defines.h"
 #include <opencv2/core/core.hpp>
 
+
+typedef struct _colorRGB {
+  int red;
+  int green;
+  int blue;
+} colorRGB;
+
+typedef struct _colorHSV {
+  double hue;
+  double saturation;
+  double value;
+} colorHSV;
+
 // Transforms the Mat object into a raw representation of the image (a 2D array).
 void transformMatToRGBMatrix(cv::Mat image, colorRGB** matrixRGB);
 

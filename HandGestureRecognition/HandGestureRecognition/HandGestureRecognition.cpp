@@ -10,15 +10,12 @@
 #include "defines.h"
 #include "transformation.h"
 #include "imageProcessing.h"
+#include "handDetection.h"
 
 using namespace cv;
 using namespace std;
 
-extern map<int, Component> componentsMap;
-extern vector<Point> extremities;
 extern vector<HullPoint> hullPoints;
-extern vector<HullPoint> handPoints;
-extern list<Point> contourList;
 extern list<Point> defectPoints;
 extern list<Point> fingerPoints;
 
@@ -66,16 +63,12 @@ int _tmain(int argc, _TCHAR* argv[]) {
   
   // hand detection region
   Point centerPoint = findCenterPoint(maxAreaLabel, labeledImage, height, width);
-  createVectorOfHandPoints(maxAreaLabel, labeledImage, height, width);//take care... this is 
-  convexHull();
+  convexHull(maxAreaLabel, labeledImage, height, width);
   constructResult(binaryImage);
-
-
-
-  drawConvexHull(image);
+  
   
   circle( image, centerPoint, 5, Scalar( 0, 0, 255 ), CV_FILLED, 8 );
-
+  drawConvexHull(image);
   for (auto it = fingerPoints.begin(); it != fingerPoints.end(); it++) {
     circle( image, *it, 2, Scalar( 0, 255, 255 ), CV_FILLED);
     circle( image, *it, 10, Scalar( 0, 255, 255 ));
@@ -87,7 +80,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
   }
 
   imshow( "Initial", image );
-  //imshow("Result", testResult);
 
   waitKey(0);
 
@@ -142,12 +134,9 @@ void subtractBackground(int height, int width) {
   }
 }
 
+
 void drawConvexHull(Mat& image) {
   for (auto it = hullPoints.begin(); it != hullPoints.end()-1; ++it) {
     line(image, Point(it->x, it->y), Point((it+1)->x, (it+1)->y), Scalar(255, 255, 0), 1); 
   }
-
-
 }
-
-

@@ -1,45 +1,24 @@
 #ifndef _IMAGE_PROCESSING_H_
 #define _IMAGE_PROCESSING_H_
 
-//a structure that holds the 
+#include <opencv2/core/core.hpp>
+#include <map>
+
+
+//a structure that holds the entry point for an object and its area
 typedef struct _Component {
   cv::Point entryPt;
   int area;
 } Component;
 
-// structure for points used in finding the convex hull
-typedef struct _HullPoint {
-  int x, y;
-  bool up;
-
-  _HullPoint() {
-    x = 0; y = 0;
-  }
-
-  _HullPoint(int x, int y) {
-    this->x = x; this->y = y;
-  }
-
-  _HullPoint(const cv::Point p) {
-    x = p.x; y = p.y;
-  }
-
-  bool operator < (const _HullPoint& p) const {
-    return x < p.x || (x == p.x && y < p.y);
-  }
-} HullPoint;
-
-typedef long long BigInt;
+typedef std::map<int, Component> ComponentsMap;
 
 
-void openImage(bool** image, int height, int width);
-void closeImage(bool** image, int height, int width);
-void labelImage(bool** binaryImage, int** labelImage, int height, int width);
-int getLabelWithMaxArea();
-cv::Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int width);
-void contourTracing(bool** binaryImage, int height, int width, int maxAreaLabel);
-void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width);
-void convexHull();
-void constructResult(bool** binaryImage);
+// Performs image close
+void  closeImage(bool** image, int height, int width);
+// Assigns a label to each object in the image
+void  labelImage(bool** binaryImage, int** labelImage, int height, int width);
+// Returns the label corresponding to the object with the maximum area
+int   getLabelWithMaxArea();
 
 #endif
