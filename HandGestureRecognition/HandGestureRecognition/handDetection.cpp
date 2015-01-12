@@ -20,7 +20,7 @@ list<Point> defectPoints;
 
 void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, int width);
 BigInt crossProduct(const HullPoint &O, const HullPoint &A, const HullPoint &B);
-void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point& resPt, float& height);
+void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point& resPt, float& height, int imgHeight, int imgWidth);
 void getFingerPoints(list<Point> tempPts);
 
 
@@ -91,10 +91,9 @@ void createVectorOfHandPoints(int maxAreaLabel, int** labeledImage, int height, 
 // pass the temporary list and compute the distance between last point in the fingers list and the
 // current point. If the distance is bigger than DISTANCE_THRESHOLD add that point to the final list
 // of fingers.
-void constructResult(bool** binaryImage) {
+void constructResult(bool** binaryImage, int imgHeight, int imgWidth) {
   fingerPoints.clear();
   defectPoints.clear();
-  
   
   list<Point> tempList;
   for (auto it = hullPoints.begin(); it != hullPoints.end()-1; ++it) {
@@ -104,7 +103,7 @@ void constructResult(bool** binaryImage) {
     Point p1(it->x, it->y);
     Point p2((it+1)->x, (it+1)->y);
 
-    getPointWithMaxHeightBetween(binaryImage, p1, p2, distPt, height);
+    getPointWithMaxHeightBetween(binaryImage, p1, p2, distPt, height, imgHeight, imgWidth);
 
     if (height > HEIGHT_THRESHOLD) {
       tempList.push_back(p1);
@@ -126,10 +125,20 @@ BigInt crossProduct(const HullPoint &O, const HullPoint &A, const HullPoint &B) 
 
 // Go from point p1 to p2 on contour and compute the height for each point. Return the point that
 // corresponds to the maximum height and its height.
-void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point& resPt, float& height) {
+void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point& resPt, float& height, int imgHeight, int imgWidth) {
   int dx[] = {1,1,0,-1,-1,-1,0,1};
   int dy[] = {0,-1,-1,-1,0,1,1,1};
   int dir = 7;
+
+  for (int i = 0; i < imgWidth; ++i) {
+    binaryImage[0][i] = false;
+    binaryImage[imgHeight-1][i] = false;
+  }
+
+  for (int i = 0; i < imgHeight; ++i) {
+    binaryImage[i][0] = false;
+    binaryImage[i][imgWidth-1] = false;
+  }
 
   Point crtPoint = p1;
   vector<Point> points;
@@ -139,6 +148,8 @@ void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point&
   float b = p2.x - p1.x;
   float c = p1.x*p2.y - p2.x*p1.y;
 
+  int flag = true;
+
   while(true){
     //compute the position to start searching for the next point
     if (dir % 2 == 0)
@@ -147,8 +158,19 @@ void getPointWithMaxHeightBetween(bool** binaryImage, Point p1, Point p2, Point&
       dir = (dir + 6) % 8;
 
     //go through all neighbors until you find a black one
-    while( binaryImage[crtPoint.y + dy[dir]][crtPoint.x + dx[dir]] )
+    int y = crtPoint.y + dy[dir];
+    int x = crtPoint.x + dx[dir];
+    while( binaryImage[y][x] ) {
       dir = (dir + 1) % 8 ;
+      y = crtPoint.y + dy[dir];
+      x = crtPoint.x + dx[dir];
+      if (y <= 0 || y >= imgHeight || x <= 0 || x >= imgWidth) {
+        flag = false;
+        break;
+      }
+    }
+
+    if (!flag) break;
 
     //take the next point
     crtPoint.x = crtPoint.x + dx[dir];

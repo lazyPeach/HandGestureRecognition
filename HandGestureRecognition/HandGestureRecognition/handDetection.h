@@ -31,6 +31,6 @@ cv::Point findCenterPoint(int maxAreaLabel, int** labeledImage, int height, int 
 // Computes the convex hull of the object having the biggest area.
 void convexHull(int maxAreaLabel, int** labeledImage, int height, int width);
 // Constructs the result consisting of finger points and convexity defects
-void constructResult(bool** binaryImage);
+void constructResult(bool** binaryImage, int imgHeight, int imgWidth);
 
 #endif

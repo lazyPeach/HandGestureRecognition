@@ -27,7 +27,7 @@ void closeImage(bool** image, int height, int width) {
   for (int i = 0; i < 2; i++)
     erodeImage(image, height, width);
 
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 2; i++)
     dilateImage(image, height, width);
 
   for (int i = 1; i < height-1; i++) 
